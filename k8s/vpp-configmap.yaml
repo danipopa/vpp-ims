@@ -1,0 +1,34 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vpp-config
+  namespace: vpp-ims
+data:
+  vpp.conf: |
+    unix {
+      nodaemon
+      cli-listen /run/vpp/cli.sock
+      log /dev/stdout
+      startup-config /etc/vpp/interface-up.txt
+    }
+
+    api-trace {
+      on
+    }
+
+    dpdk {
+      dev 0000:01:00.0
+      dev 0000:08:00.0
+      uio-driver vfio-pci
+    }
+    plugins {
+      plugin default {
+        filename /usr/lib/vpp_plugins/libvpp_pg.so
+      }
+    }
+
+  interface-up.txt: |
+    af_packet add host-if veth-host-a name afpacket-a
+    af_packet add host-if veth-host-b name afpacket-b
+    set interface state afpacket-a up
+    set interface state afpacket-b up
