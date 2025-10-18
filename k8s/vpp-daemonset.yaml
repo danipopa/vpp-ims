@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: vpp
+  namespace: vpp-ims
+  labels:
+    app: vpp
+spec:
+  selector:
+    matchLabels:
+      app: vpp
+  template:
+    metadata:
+      labels:
+        app: vpp
+    spec:
+      hostNetwork: true
+      tolerations:
+      - operator: "Exists"
+      containers:
+      - name: vpp
+        image: registry.local:32000/vpp-tap:25.06
+        command: ["/usr/bin/vpp", "-c", "/etc/vpp/vpp.conf"]
+        securityContext:
+          privileged: true
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+            hugepages-2Mi: 64Mi
+          limits:
+            cpu: "500m"
+            memory: "256Mi"
+            hugepages-2Mi: 64Mi
+        volumeMounts:
+        - name: vpp-config
+          mountPath: /etc/vpp/vpp.conf
+          subPath: vpp.conf
+        - name: vpp-config
+          mountPath: /etc/vpp/interface-up.txt
+          subPath: interface-up.txt
+      - name: frr
+        image: frrouting/frr:latest
+        command: ["sleep", "infinity"]
+        securityContext:
+          privileged: true
+      volumes:
+      - name: vpp-config
+        configMap:
+          name: vpp-config
+          items:
+          - key: vpp.conf
+            path: vpp.conf
+          - key: interface-up.txt
+            path: interface-up.txt
+      - name: host-sys
+        hostPath:
+          path: /sys
+      - name: host-dev
+        hostPath:
+          path: /dev
+      - name: lib-modules
+        hostPath:
+          path: /lib/modules
+      - name: hugepages
+        emptyDir:
+          medium: HugePages

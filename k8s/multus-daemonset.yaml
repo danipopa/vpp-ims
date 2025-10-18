@@ -1,0 +1,85 @@
+# Multus CNI DaemonSet (Kubernetes) - installs Multus as CNI
+# Source: adapted minimal manifest for Multus v3-compatible deployment
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: multus
+  namespace: kube-system
+  labels:
+    tier: node
+    app: multus
+spec:
+  selector:
+    matchLabels:
+      name: multus
+  template:
+    metadata:
+      labels:
+        name: multus
+    spec:
+      serviceAccountName: multus
+      hostNetwork: true
+      tolerations:
+      - operator: "Exists"
+      containers:
+      - name: multus
+        image: ghcr.io/k8snetworkplumbingwg/multus-cni:latest
+        # Use the image's default entrypoint. Some image variants don't contain
+        # /usr/local/bin/multus-daemon at that path; letting the image decide
+        # the command avoids "no such file" run errors.
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: cni-bin
+          mountPath: /host/opt/cni/bin
+        - name: cni-conf
+          # Multus image expects to find host CNI configs under /host/etc/cni/net.d
+          mountPath: /host/etc/cni/net.d
+        - name: kubeconfig
+          mountPath: /etc/multus/kubeconfig
+          readOnly: true
+      volumes:
+      - name: cni-bin
+        hostPath:
+          path: /opt/cni/bin
+      - name: cni-conf
+        hostPath:
+          path: /etc/cni/net.d
+      - name: kubeconfig
+        hostPath:
+          path: /etc/kubernetes
+---
+# ServiceAccount, ClusterRole, ClusterRoleBinding for Multus
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: multus
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: multus-podstatus-updater
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/status"]
+    verbs: ["get", "list", "watch", "update", "patch"]
+  - apiGroups: ["k8s.cni.cncf.io"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: multus-podstatus-updater-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: multus-podstatus-updater
+subjects:
+  - kind: ServiceAccount
+    name: multus
+    namespace: kube-system

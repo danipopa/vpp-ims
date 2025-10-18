@@ -1,0 +1,29 @@
+# ------------------------------------------------------------
+# VPP base image for Ubuntu Noble (24.04)
+# ------------------------------------------------------------
+FROM ubuntu:24.04
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=UTC
+
+# Install dependencies and add FD.io repository
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl gnupg ca-certificates lsb-release iproute2 iputils-ping net-tools \
+    && mkdir -p /etc/apt/keyrings \
+    && curl -fsSL https://packagecloud.io/fdio/release/gpgkey \
+       | gpg --dearmor -o /etc/apt/keyrings/fdio.gpg \
+    && echo "deb [signed-by=/etc/apt/keyrings/fdio.gpg] https://packagecloud.io/fdio/release/ubuntu/ noble main" \
+       > /etc/apt/sources.list.d/fdio-release.list \
+    && apt-get update \
+    && apt-get install -y vpp vpp-plugin-core vpp-plugin-dpdk vpp-dev \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Create runtime directories
+RUN mkdir -p /run/vpp /var/run/vpp /var/log/vpp
+
+# Expose VPP CLI socket
+EXPOSE 5002
+
+# Default command starts VPP in foreground
+CMD ["/usr/bin/vpp", "-c", "/etc/vpp/startup.conf"]

@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pcscf
+  namespace: vpp-ims
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pcscf
+  template:
+    metadata:
+      labels:
+        app: pcscf
+    spec:
+      containers:
+      - name: pcscf
+        image: kamailio/kamailio:latest
+        ports:
+        - containerPort: 5060
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pcscf
+  namespace: vpp-ims
+spec:
+  selector:
+    app: pcscf
+  ports:
+  - protocol: UDP
+    port: 5060
+    targetPort: 5060

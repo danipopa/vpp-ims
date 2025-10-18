@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: icscf
+  namespace: vpp-ims
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: icscf
+  template:
+    metadata:
+      labels:
+        app: icscf
+    spec:
+      containers:
+      - name: icscf
+        image: kamailio/kamailio:latest
+        ports:
+        - containerPort: 5060
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: icscf
+  namespace: vpp-ims
+spec:
+  selector:
+    app: icscf
+  ports:
+  - protocol: UDP
+    port: 5060
+    targetPort: 5060

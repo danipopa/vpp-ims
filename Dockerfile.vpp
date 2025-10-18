@@ -1,0 +1,22 @@
+# VPP Dockerfile with tap plugin support
+FROM fdio/vpp:25.06-release
+
+USER root
+
+# Install tap plugin dependencies (if needed)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+      vpp-plugin-core \
+      vpp-plugin-extra \
+      vpp-plugin-dpdk \
+      vpp-plugin-tap \
+      iproute2 \
+      iputils-ping \
+      net-tools && \
+    rm -rf /var/lib/apt/lists/*
+
+# Show available plugins for debug
+RUN ls /usr/lib/x86_64-linux-gnu/vpp_plugins
+
+# Entrypoint
+CMD ["/usr/bin/vpp", "-c", "/etc/vpp/vpp.conf"]
